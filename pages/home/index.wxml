@@ -1,0 +1,65 @@
+<view class="container home-page" style="{{homePaddingStyle}}">
+  <view class="home-header">
+    <view class="category-wrap">
+      <view class="category-tabs">
+        <view
+          wx:for="{{categories}}"
+          wx:key="id"
+          class="{{item.className}} tap-item"
+          data-id="{{item.id}}"
+          bindtap="onTapCategory"
+          hover-class="item-press"
+        >
+          {{item.label}}
+        </view>
+      </view>
+      <view class="avatar-btn" bindtap="onOpenProfile" hover-class="avatar-press">
+        <view class="avatar-inner"></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="templates-card">
+    <swiper
+      class="template-swiper"
+      current="{{currentIndex}}"
+      previous-margin="110rpx"
+      next-margin="110rpx"
+      bindchange="onSwiperChange"
+    >
+      <swiper-item wx:for="{{templates}}" wx:key="id">
+        <view class="template-item-wrap">
+          <view
+            class="{{item.className}}"
+            data-id="{{item.id}}"
+            bindtap="onTapTemplate"
+            hover-class="template-card-press"
+          >
+            <view class="preview-frame">
+              <view class="preview-image-area"></view>
+              <view class="preview-text-group">
+                <text class="preview-title">{{item.name}}</text>
+                <text class="preview-subtitle">点击进入模板详情与编辑</text>
+              </view>
+            </view>
+            <text class="template-name">{{item.name}}</text>
+          </view>
+        </view>
+      </swiper-item>
+    </swiper>
+
+    <view class="swiper-indicator-row">
+      <view
+        wx:for="{{templates}}"
+        wx:for-index="idx"
+        wx:key="id"
+        class="indicator-dot {{idx === currentIndex ? 'active' : ''}}"
+      ></view>
+    </view>
+  </view>
+
+  <view wx:if="{{isRouting}}" class="route-mask">
+    <view class="route-loading"></view>
+    <view class="route-text">正在打开模板...</view>
+  </view>
+</view>

@@ -1,0 +1,32 @@
+<scroll-view class="guide-page" scroll-y style="{{safeTopStyle}}">
+  <view class="guide-hero">
+    <view class="hero-title">用户说明</view>
+    <view class="hero-subtitle">3 分钟快速了解模板编辑与保存流程</view>
+  </view>
+
+  <view class="guide-section">
+    <view class="guide-title">01 模板使用教程</view>
+    <view class="guide-text">1. 首页选择分类并左右滑动模板。</view>
+    <view class="guide-text">2. 点击模板进入详情后，点击“编辑”开始制作。</view>
+  </view>
+
+  <view class="guide-section">
+    <view class="guide-title">02 图片上传 / 裁剪指引</view>
+    <view class="guide-text">1. 在“图片上传”Tab 选择拍照或相册。</view>
+    <view class="guide-text">2. 上传后可在预览区拖拽位置，并用滑块调整缩放比例。</view>
+  </view>
+
+  <view class="guide-section">
+    <view class="guide-title">03 保存相册操作说明</view>
+    <view class="guide-text">1. 点击“预览”进入最终预览页。</view>
+    <view class="guide-text">2. 点击“保存相册”，首次需要授权系统相册权限。</view>
+    <view class="guide-text">3. 保存成功后会进入成功页，并可返回首页。</view>
+  </view>
+
+  <view class="guide-section">
+    <view class="guide-title">04 缓存恢复规则</view>
+    <view class="guide-text">1. 编辑中会自动缓存文字、图片和背景设置。</view>
+    <view class="guide-text">2. 重新打开小程序后会保留最近一次编辑进度。</view>
+    <view class="guide-text">3. 保存成功会清理该模板缓存；个人中心可清理全部缓存。</view>
+  </view>
+</scroll-view>

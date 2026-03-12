@@ -1,0 +1,9 @@
+{
+  "desc": "mvp sitemap",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

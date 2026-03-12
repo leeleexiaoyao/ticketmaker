@@ -1,0 +1,13 @@
+{
+  "name": "ticket-stub-maker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "票根制作器小程序 MVP",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^3.12.0",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/template-detail/index",
+    "pages/preview/index",
+    "pages/save-result/index",
+    "pages/profile/index",
+    "pages/user-guide/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#111317",
+    "navigationBarTitleText": "票根制作器",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#111317"
+  },
+  "sitemapLocation": "sitemap.json"
+}

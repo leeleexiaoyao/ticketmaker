@@ -1,0 +1,29 @@
+<view class="container preview-page" style="{{safeTopStyle}}">
+  <view class="top-nav">
+    <view class="back-btn" bindtap="onTapBack">
+      <view class="back-arrow"></view>
+    </view>
+    <view class="nav-title">{{templateName}}</view>
+    <view class="nav-space"></view>
+  </view>
+
+  <view class="preview-head">
+    <view class="preview-title">最终预览</view>
+    <view class="preview-subtitle">确认无误后保存到相册</view>
+  </view>
+
+  <view class="canvas-wrap">
+    <view class="canvas-shell">
+      <canvas id="previewCanvas" type="2d" class="preview-canvas"></canvas>
+    </view>
+  </view>
+
+  <view class="preview-tip">如需调整内容，可点击“再次编辑”返回上一页</view>
+
+  <view class="action-row">
+    <button class="ghost-btn action-btn" bindtap="onTapAgainEdit">再次编辑</button>
+    <button class="primary-btn action-btn" disabled="{{isSaving}}" bindtap="onTapSaveAlbum">
+      {{isSaving ? '保存中...' : '保存相册'}}
+    </button>
+  </view>
+</view>

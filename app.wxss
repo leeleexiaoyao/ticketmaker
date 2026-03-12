@@ -1,0 +1,57 @@
+page {
+  background: #101114;
+  color: #f3f4f6;
+  font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+}
+
+.container {
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.card {
+  background: rgba(24, 26, 31, 0.92);
+  border-radius: 24rpx;
+  box-shadow: 0 16rpx 34rpx rgba(0, 0, 0, 0.36);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.primary-btn {
+  height: 88rpx;
+  border-radius: 999rpx;
+  border: none;
+  background: linear-gradient(135deg, #f5f5f7 0%, #cfd3da 100%);
+  color: #101114;
+  font-size: 30rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 22rpx rgba(0, 0, 0, 0.42);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ghost-btn {
+  height: 88rpx;
+  border-radius: 999rpx;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f3f4f6;
+  font-size: 28rpx;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.page-title {
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+button::after {
+  border: none;
+}
+
+.primary-btn:active,
+.ghost-btn:active {
+  transform: scale(0.98);
+}
+
+.ghost-btn:active {
+  background: rgba(255, 255, 255, 0.1);
+}

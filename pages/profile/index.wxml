@@ -1,0 +1,38 @@
+<view class="container profile-page" style="{{safeTopStyle}}">
+  <view class="profile-header card">
+    <view class="avatar">票</view>
+    <view class="nickname">票根用户</view>
+    <view class="header-subtitle">管理缓存与查看使用说明</view>
+  </view>
+
+  <view class="feature-list card">
+    <view class="feature-item" hover-class="item-hover" bindtap="onTapClearCache">
+      <view class="item-icon icon-delete"></view>
+      <view class="item-copy">
+        <text class="item-text">清除缓存</text>
+        <text class="item-desc">清理本地编辑草稿数据</text>
+      </view>
+      <view class="item-arrow"></view>
+    </view>
+
+    <view class="feature-item" hover-class="item-hover" bindtap="onTapAbout">
+      <view class="item-icon icon-about"></view>
+      <view class="item-copy">
+        <text class="item-text">关于我们</text>
+        <text class="item-desc">查看版本与产品介绍</text>
+      </view>
+      <view class="item-arrow"></view>
+    </view>
+
+    <view class="feature-item" hover-class="item-hover" bindtap="onTapGuide">
+      <view class="item-icon icon-guide"></view>
+      <view class="item-copy">
+        <text class="item-text">用户说明</text>
+        <text class="item-desc">了解模板编辑和保存流程</text>
+      </view>
+      <view class="item-arrow"></view>
+    </view>
+  </view>
+
+  <view class="version-text">当前版本 {{version}}</view>
+</view>

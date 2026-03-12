@@ -1,0 +1,16 @@
+<view class="container save-result-page" style="{{safeTopStyle}}">
+  <view class="result-icon-wrap">
+    <view class="result-icon"></view>
+    <view class="result-title">保存成功</view>
+    <view class="result-subtitle">已写入系统相册，可直接分享</view>
+  </view>
+
+  <view class="preview-card card">
+    <view class="preview-wrap">
+      <image wx:if="{{imagePath}}" class="preview-image" mode="aspectFit" src="{{imagePath}}"></image>
+      <view wx:else class="preview-placeholder">{{templateName}}</view>
+    </view>
+  </view>
+
+  <button class="primary-btn back-home-btn" bindtap="onTapBackHome">返回首页继续制作</button>
+</view>
