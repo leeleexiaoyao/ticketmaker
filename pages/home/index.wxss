@@ -26,34 +26,41 @@
 }
 
 .category-tabs {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 36rpx;
+  gap: 0;
+  height: 72rpx;
 }
 
 .category-item {
   position: relative;
-  padding-bottom: 12rpx;
-  font-size: 32rpx;
-  color: #8991a1;
-  font-weight: 500;
-  transition: color 0.2s ease, transform 0.2s ease;
+  width: 150rpx;
+  text-align: center;
+  font-family: 'TicketHomeTabFont', sans-serif;
+  font-size: 28rpx;
+  line-height: 56rpx;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+  transform: translateY(2rpx) scale(0.94);
+  transition: color 0.24s ease, transform 0.24s ease, font-size 0.24s ease;
 }
 
 .category-item.active {
+  font-size: 36rpx;
   color: #f4f5f7;
-  font-weight: 700;
+  font-weight: 500;
+  transform: translateY(0) scale(1);
 }
 
-.category-item.active::after {
-  content: '';
+.category-indicator {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 47rpx;
   bottom: 0;
-  height: 6rpx;
-  border-radius: 6rpx;
+  width: 56rpx;
+  height: 4rpx;
   background: linear-gradient(90deg, #f2f3f6 0%, #aeb5c0 100%);
+  transition: transform 0.24s ease;
 }
 
 .tap-item.item-press {
@@ -87,11 +94,11 @@
 .templates-card {
   margin-top: 18rpx;
   padding: 18rpx 0 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .template-swiper {
-  height: 900rpx;
+  height: auto;
 }
 
 .template-item-wrap {
@@ -103,15 +110,15 @@
 }
 
 .template-card {
-  width: 420rpx;
-  padding: 12rpx;
-  transform: scale(1);
+  width: 75vw;
+  padding: 0;
+  transform: scale(0.88);
   transition: transform 0.24s ease, opacity 0.24s ease;
-  opacity: 0.82;
+  opacity: 0.58;
 }
 
 .template-card.selected {
-  transform: scale(1.12);
+  transform: scale(1.08);
   opacity: 1;
 }
 
@@ -120,70 +127,20 @@
 }
 
 .preview-frame {
-  height: 640rpx;
-  border-radius: 24rpx;
-  background: linear-gradient(180deg, #1c2027 0%, #171a21 100%);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
-  padding: 24rpx;
+  width: 100%;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .preview-image-area {
   width: 100%;
-  height: 376rpx;
-  border-radius: 16rpx;
-  background:
-    radial-gradient(circle at 14% 18%, rgba(102, 114, 145, 0.36) 0, rgba(102, 114, 145, 0) 40%),
-    radial-gradient(circle at 88% 86%, rgba(66, 74, 94, 0.5) 0, rgba(66, 74, 94, 0) 42%),
-    #111419;
-  border: 1rpx dashed rgba(255, 255, 255, 0.2);
-}
-
-.preview-text-group {
-  margin-top: 26rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.preview-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #f4f5f7;
-}
-
-.preview-subtitle {
-  font-size: 22rpx;
-  color: #8d95a2;
-}
-
-.template-name {
+  height: auto;
   display: block;
-  text-align: center;
-  margin-top: 18rpx;
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #eff1f4;
-}
-
-.swiper-indicator-row {
-  margin-top: 8rpx;
-  display: flex;
-  justify-content: center;
-  gap: 14rpx;
-}
-
-.indicator-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: #3c414d;
-  transition: width 0.2s ease, background 0.2s ease;
-}
-
-.indicator-dot.active {
-  width: 38rpx;
-  background: linear-gradient(90deg, #f2f3f6 0%, #b1b7c2 100%);
+  border-radius: 0;
 }
 
 .route-mask {
@@ -219,4 +176,43 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* 主题维护说明：调整深色配色时，请同步更新下方浅色覆盖。 */
+.theme-light.home-page {
+  background: #f3f6fc;
+}
+
+.theme-light .category-item {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.theme-light .category-item.active {
+  color: #000;
+}
+
+.theme-light .category-indicator {
+  background: linear-gradient(90deg, #202a39 0%, #455269 100%);
+}
+
+.theme-light .avatar-btn {
+  background: linear-gradient(135deg, #ffffff 0%, #e9eef8 100%);
+  border: 1rpx solid rgba(24, 38, 64, 0.12);
+}
+
+.theme-light .avatar-inner {
+  background: radial-gradient(circle at 50% 35%, #55627a 0 18rpx, #b3bdce 20rpx, #8f9bb0 100%);
+}
+
+.theme-light .route-mask {
+  background: rgba(238, 244, 252, 0.95);
+}
+
+.theme-light .route-loading {
+  border: 6rpx solid rgba(53, 74, 106, 0.2);
+  border-top-color: #334766;
+}
+
+.theme-light .route-text {
+  color: #607088;
 }

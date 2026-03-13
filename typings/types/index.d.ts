@@ -1,8 +1,10 @@
 interface IAppOption {
   globalData: {
     version: string;
-    remarkFontFamily: string;
-    remarkFontLoaded: boolean;
+    remarkFontFamilyMap: Record<string, string>;
+    remarkFontLoadedMap: Record<string, boolean>;
+    themeMode: 'dark' | 'light';
   };
-  tryLoadRemarkFont: () => void;
+  tryLoadRemarkFonts: () => void;
+  tryLoadHomeTabFont: () => void;
 }

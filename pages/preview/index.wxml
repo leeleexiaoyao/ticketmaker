@@ -1,4 +1,4 @@
-<view class="container preview-page" style="{{safeTopStyle}}">
+<view class="container preview-page {{themeClass}}" style="{{safeTopStyle}}">
   <view class="top-nav">
     <view class="back-btn" bindtap="onTapBack">
       <view class="back-arrow"></view>
@@ -14,7 +14,7 @@
 
   <view class="canvas-wrap">
     <view class="canvas-shell">
-      <canvas id="previewCanvas" type="2d" class="preview-canvas"></canvas>
+      <canvas id="previewCanvas" type="2d" class="preview-canvas" style="{{previewCanvasStyle}}"></canvas>
     </view>
   </view>
 

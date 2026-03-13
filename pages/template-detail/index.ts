@@ -3,10 +3,12 @@ import { DraftService } from '../../services/draft.service';
 import { ImageEditService } from '../../services/image-edit.service';
 import { RendererService } from '../../services/renderer.service';
 import { TemplateService } from '../../services/template.service';
-import { TemplateDraft } from '../../models/draft';
+import { CropParams, TemplateDraft } from '../../models/draft';
 import { TemplateConfig, TemplateId } from '../../models/template';
 import { TEXT_CACHE_DELAY } from '../../utils/constants';
+import { REMARK_FONT_PRESETS, getRemarkFontPreset } from '../../utils/font-presets';
 import { getSafeTopStyle } from '../../utils/safe-area';
+import { applyNativeTheme, getCurrentThemeMode, getThemeClass, ThemeMode } from '../../utils/theme';
 
 interface FieldViewModel {
   key: string;
@@ -16,6 +18,7 @@ interface FieldViewModel {
   isTimeField: boolean;
   isAddressField: boolean;
   maxLength: number;
+  overflow: boolean;
   value: string;
 }
 
@@ -24,46 +27,161 @@ interface ColorViewModel {
   className: string;
 }
 
+interface FontOptionViewModel {
+  key: string;
+  label: string;
+  className: string;
+}
+
 interface TemplateDetailPageData {
   template: TemplateConfig | null;
   templateName: string;
   draft: TemplateDraft | null;
   safeTopStyle: string;
+  themeMode: ThemeMode;
+  themeClass: string;
   isRouting: boolean;
-  activeTab: 'text' | 'image' | 'bg';
+  activeTab: 'text' | 'image' | 'font' | 'bg';
   editorVisible: boolean;
   pageClass: string;
   editorPanelClass: string;
   textTabClass: string;
   imageTabClass: string;
+  fontTabClass: string;
   bgTabClass: string;
+  tabIndicatorClass: string;
   showTextTab: boolean;
   showImageTab: boolean;
+  showFontTab: boolean;
   showBgTab: boolean;
-  showScaleSlider: boolean;
   showEntryAction: boolean;
+  isFullPreview: boolean;
   isSaving: boolean;
   fieldsForRender: FieldViewModel[];
   colorsForRender: ColorViewModel[];
-  scaleSliderValue: number;
+  fontOptionsForRender: FontOptionViewModel[];
+  previewBaseImagePath: string;
+  previewTextImagePath: string;
   previewImagePath: string;
+  previewCanvasStyle: string;
+  renderCanvasStyle: string;
+  fullPreviewEmptyStyle: string;
+  imageSlotFrameStyle: string;
+  imageSlotMaskTopStyle: string;
+  imageSlotMaskRightStyle: string;
+  imageSlotMaskBottomStyle: string;
+  imageSlotMaskLeftStyle: string;
+  overflowKeys: string[];
+  addressOverflow: boolean;
   dateTimeRange: string[][];
   dateTimeIndex: number[];
-  regionValue: string[];
   hasAddressField: boolean;
-  addressPlaceholder: string;
+}
+
+interface PreviewRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 let textDebounceTimer: number | null = null;
-let previewRenderToken = 0;
-let previewSnapshotTimer: number | null = null;
+let previewLayerRenderToken = 0;
 let previewSnapshotInFlight = false;
-let previewSnapshotPending = false;
-let dragging = false;
+let titleLimitToastTimer: number | null = null;
+let titleMeasureCtx: any = null;
+let gestureMode: 'idle' | 'drag' | 'pinch' = 'idle';
 let lastTouchX = 0;
 let lastTouchY = 0;
+let gestureCrop: CropParams | null = null;
+let gestureSlotWidth = 0;
+let gestureSlotHeight = 0;
+let gestureSlotLeftClient = 0;
+let gestureSlotTopClient = 0;
+let gestureCanvasPerClientX = 1;
+let gestureCanvasPerClientY = 1;
+let pinchStartDistance = 0;
+let pinchStartCenterX = 0;
+let pinchStartCenterY = 0;
+let pinchStartCrop: CropParams | null = null;
 let cachedCanvasWidth = 0;
 let cachedCanvasHeight = 0;
+let cropRenderTimer: number | null = null;
+
+const CANVAS_WIDTH_RPX = 500;
+const CROP_RENDER_THROTTLE_MS = 16;
+
+const buildCanvasStyles = (template: TemplateConfig | null): { preview: string; render: string; fullPreviewEmpty: string } => {
+  const ratio = template ? template.canvasSize.height / template.canvasSize.width : 1.6;
+  const clampedRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1.6;
+  const canvasHeightRpx = (CANVAS_WIDTH_RPX * clampedRatio).toFixed(3);
+  return {
+    preview: `width: ${CANVAS_WIDTH_RPX}rpx; height: ${canvasHeightRpx}rpx;`,
+    render: `width: ${CANVAS_WIDTH_RPX}rpx; height: ${canvasHeightRpx}rpx;`,
+    fullPreviewEmpty: `width: ${CANVAS_WIDTH_RPX}rpx; height: ${canvasHeightRpx}rpx;`,
+  };
+};
+
+const clamp01 = (value: number): number => Math.min(Math.max(value, 0), 1);
+
+const toPercent = (value: number): string => `${Math.round(value * 100000) / 1000}%`;
+
+const buildImageSlotMaskStyle = (
+  template: TemplateConfig | null,
+): {
+  frame: string;
+  top: string;
+  right: string;
+  bottom: string;
+  left: string;
+} => {
+  if (!template) {
+    return {
+      frame: '',
+      top: '',
+      right: '',
+      bottom: '',
+      left: '',
+    };
+  }
+
+  const x = clamp01(template.imageSlot.x);
+  const y = clamp01(template.imageSlot.y);
+  const width = clamp01(template.imageSlot.width);
+  const height = clamp01(template.imageSlot.height);
+  const right = clamp01(1 - x - width);
+  const bottom = clamp01(1 - y - height);
+
+  return {
+    frame: `left:${toPercent(x)};top:${toPercent(y)};width:${toPercent(width)};height:${toPercent(height)};`,
+    top: `left:0;top:0;width:100%;height:${toPercent(y)};`,
+    right: `left:${toPercent(x + width)};top:${toPercent(y)};width:${toPercent(right)};height:${toPercent(height)};`,
+    bottom: `left:0;top:${toPercent(y + height)};width:100%;height:${toPercent(bottom)};`,
+    left: `left:0;top:${toPercent(y)};width:${toPercent(x)};height:${toPercent(height)};`,
+  };
+};
+
+const getTouchXY = (touch: any): { x: number; y: number } => ({
+  x: touch.clientX ?? touch.pageX ?? touch.x ?? 0,
+  y: touch.clientY ?? touch.pageY ?? touch.y ?? 0,
+});
+
+const getTouchDistance = (a: any, b: any): number => {
+  const pointA = getTouchXY(a);
+  const pointB = getTouchXY(b);
+  const dx = pointA.x - pointB.x;
+  const dy = pointA.y - pointB.y;
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
+const getTouchCenter = (a: any, b: any): { x: number; y: number } => {
+  const pointA = getTouchXY(a);
+  const pointB = getTouchXY(b);
+  return {
+    x: (pointA.x + pointB.x) / 2,
+    y: (pointA.y + pointB.y) / 2,
+  };
+};
 
 const pad2 = (value: number): string => (value < 10 ? `0${value}` : `${value}`);
 
@@ -136,12 +254,80 @@ const getImageInfoByPath = (src: string): Promise<WechatMiniprogram.GetImageInfo
     });
   });
 
+const ensureTitleMeasureCtx = (): any => {
+  if (titleMeasureCtx) {
+    return titleMeasureCtx;
+  }
+  try {
+    const offscreenFactory = (wx as WechatMiniprogram.Wx & { createOffscreenCanvas?: (options: { type: '2d'; width: number; height: number }) => any })
+      .createOffscreenCanvas;
+    if (!offscreenFactory) {
+      return null;
+    }
+    const canvas = offscreenFactory({ type: '2d', width: 4, height: 4 });
+    titleMeasureCtx = canvas.getContext('2d');
+    return titleMeasureCtx;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const canTitleFitTwoLines = (value: string): boolean => {
+  const text = value.replace(/\r\n/g, '\n');
+  if (!text.trim()) {
+    return true;
+  }
+  const ctx = ensureTitleMeasureCtx();
+  if (!ctx) {
+    return true;
+  }
+
+  const baseWidth = 440;
+  const leftRightPadding = 24 * 2;
+  const maxWidth = baseWidth - leftRightPadding;
+  const maxLines = 2;
+  ctx.font = `700 ${Math.floor(baseWidth * 0.062)}px sans-serif`;
+
+  const paragraphs = text.split('\n');
+  let lines = 0;
+  for (let i = 0; i < paragraphs.length; i += 1) {
+    const paragraph = paragraphs[i];
+    let currentLine = '';
+    for (const char of paragraph) {
+      const candidate = `${currentLine}${char}`;
+      if (currentLine && ctx.measureText(candidate).width > maxWidth) {
+        lines += 1;
+        currentLine = char;
+        if (lines >= maxLines) {
+          return false;
+        }
+      } else {
+        currentLine = candidate;
+      }
+    }
+
+    if (currentLine || paragraph.length === 0) {
+      lines += 1;
+      if (lines > maxLines) {
+        return false;
+      }
+      if (lines === maxLines && i < paragraphs.length - 1) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
 Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
   data: {
     template: null,
     templateName: '',
     draft: null,
     safeTopStyle: 'padding-top: 48px;',
+    themeMode: 'dark',
+    themeClass: 'theme-dark',
     isRouting: false,
     activeTab: 'text',
     editorVisible: false,
@@ -149,48 +335,73 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     editorPanelClass: 'editor-panel',
     textTabClass: 'tab-item active',
     imageTabClass: 'tab-item',
+    fontTabClass: 'tab-item',
     bgTabClass: 'tab-item',
+    tabIndicatorClass: 'tab-indicator on-text',
     showTextTab: false,
     showImageTab: false,
+    showFontTab: false,
     showBgTab: false,
-    showScaleSlider: false,
     showEntryAction: true,
+    isFullPreview: false,
     isSaving: false,
     fieldsForRender: [],
     colorsForRender: [],
-    scaleSliderValue: 100,
+    fontOptionsForRender: [],
+    previewBaseImagePath: '',
+    previewTextImagePath: '',
     previewImagePath: '',
+    previewCanvasStyle: 'width: 500rpx; height: 1027.273rpx;',
+    renderCanvasStyle: 'width: 500rpx; height: 1027.273rpx;',
+    fullPreviewEmptyStyle: 'width: 500rpx; height: 1027.273rpx;',
+    imageSlotFrameStyle: '',
+    imageSlotMaskTopStyle: '',
+    imageSlotMaskRightStyle: '',
+    imageSlotMaskBottomStyle: '',
+    imageSlotMaskLeftStyle: '',
+    overflowKeys: [],
+    addressOverflow: false,
     dateTimeRange: [[], [], [], [], []],
     dateTimeIndex: [0, 0, 0, 0, 0],
-    regionValue: [],
     hasAddressField: false,
-    addressPlaceholder: '请选择城市',
+  },
+
+  syncThemeMode() {
+    const themeMode = getCurrentThemeMode();
+    applyNativeTheme(themeMode);
+    this.setData({
+      themeMode,
+      themeClass: getThemeClass(themeMode),
+    });
   },
 
   refreshComputedData() {
-    const { template, draft, activeTab, editorVisible } = this.data;
+    const { template, draft, activeTab, editorVisible, isFullPreview } = this.data;
     const hasAddressField = !!template?.fields.some((field) => field.key === 'address');
-    const addressPlaceholder = '请选择城市';
+    const canvasStyles = buildCanvasStyles(template);
+    const imageSlotMaskStyle = buildImageSlotMaskStyle(template);
 
+    const overflowKeysSet = new Set(this.data.overflowKeys);
     const fieldsForRender: FieldViewModel[] =
       template && draft
         ? template.fields.map((field) => ({
             key: field.key,
-            label: field.key === 'name' ? '主题' : field.key === 'remark' ? '留言' : field.key === 'source' ? '来自' : field.label,
+            label: field.key === 'name' ? '主题' : field.key === 'remark' ? '留言区' : field.key === 'source' ? '出自' : field.label,
             placeholder:
               field.key === 'name'
-                ? '请输入不超过20个字的标题内容'
+                ? '请输入不超过两行的标题内容'
                 : field.key === 'remark'
-                  ? '请输入留言内容，不超过50字'
+                  ? '请输入留言区内容，不超过50字'
                   : field.key === 'source'
-                    ? '请输入来自内容，不超过50字'
+                    ? '请输入出自内容，不超过50字'
                     : field.key === 'address'
-                      ? '请选择城市'
+                      ? '请输入地点（不超过10字）'
                     : field.placeholder,
             isRemark: field.key === 'remark',
             isTimeField: field.key === 'time',
             isAddressField: field.key === 'address',
-            maxLength: field.key === 'name' ? 20 : field.key === 'remark' || field.key === 'source' ? 50 : 120,
+            maxLength: field.key === 'name' ? 120 : field.key === 'address' ? 10 : field.key === 'remark' || field.key === 'source' ? 50 : 120,
+            overflow: overflowKeysSet.has(field.key),
             value: draft.text[field.key] || '',
           }))
         : [];
@@ -203,28 +414,54 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
           }))
         : [];
 
+    const fontOptionsForRender: FontOptionViewModel[] = REMARK_FONT_PRESETS.map((preset) => ({
+      key: preset.key,
+      label: preset.label,
+      className: draft?.remarkFontPresetKey === preset.key ? 'font-option selected' : 'font-option',
+    }));
+
     this.setData({
       templateName: template ? template.name : '',
       pageClass: editorVisible ? 'container detail-page editor-open' : 'container detail-page',
       editorPanelClass: editorVisible ? 'editor-panel open' : 'editor-panel',
       textTabClass: activeTab === 'text' ? 'tab-item active' : 'tab-item',
       imageTabClass: activeTab === 'image' ? 'tab-item active' : 'tab-item',
+      fontTabClass: activeTab === 'font' ? 'tab-item active' : 'tab-item',
       bgTabClass: activeTab === 'bg' ? 'tab-item active' : 'tab-item',
+      tabIndicatorClass:
+        activeTab === 'text'
+          ? 'tab-indicator on-text'
+          : activeTab === 'image'
+            ? 'tab-indicator on-image'
+            : activeTab === 'font'
+              ? 'tab-indicator on-font'
+              : 'tab-indicator on-bg',
       showTextTab: activeTab === 'text' && !!template && !!draft,
       showImageTab: activeTab === 'image',
+      showFontTab: activeTab === 'font' && !!template && !!draft,
       showBgTab: activeTab === 'bg' && !!template && !!draft,
-      showScaleSlider: activeTab === 'image' && !!draft?.image,
-      showEntryAction: !editorVisible,
+      showEntryAction: !editorVisible && !isFullPreview,
       fieldsForRender,
       colorsForRender,
+      fontOptionsForRender,
       hasAddressField,
-      addressPlaceholder,
+      previewCanvasStyle: canvasStyles.preview,
+      renderCanvasStyle: canvasStyles.render,
+      fullPreviewEmptyStyle: canvasStyles.fullPreviewEmpty,
+      imageSlotFrameStyle: imageSlotMaskStyle.frame,
+      imageSlotMaskTopStyle: imageSlotMaskStyle.top,
+      imageSlotMaskRightStyle: imageSlotMaskStyle.right,
+      imageSlotMaskBottomStyle: imageSlotMaskStyle.bottom,
+      imageSlotMaskLeftStyle: imageSlotMaskStyle.left,
+      addressOverflow: overflowKeysSet.has('address'),
     });
   },
 
   onLoad(options) {
+    this.syncThemeMode();
     cachedCanvasWidth = 0;
     cachedCanvasHeight = 0;
+    this.resetGestureState();
     const templateId = options.templateId as TemplateId;
     const template = TemplateService.getTemplateById(templateId);
 
@@ -257,7 +494,6 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
         draft,
         safeTopStyle: getSafeTopStyle(6),
         editorVisible: options.resume === '1',
-        scaleSliderValue: draft.image?.cropParams ? Math.round(draft.image.cropParams.scale * 100) : 100,
       },
       () => {
         this.initDateTimePicker(draft.text.time);
@@ -286,6 +522,7 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
   },
 
   onShow() {
+    this.syncThemeMode();
     if (this.data.isRouting) {
       this.setData({ isRouting: false });
     }
@@ -295,10 +532,16 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
   onResize() {
     cachedCanvasWidth = 0;
     cachedCanvasHeight = 0;
+    this.resetGestureState();
     this.renderPreview();
   },
 
   onHide() {
+    if (cropRenderTimer) {
+      clearTimeout(cropRenderTimer);
+      cropRenderTimer = null;
+    }
+    this.resetGestureState();
     this.persistDraft();
   },
 
@@ -307,69 +550,121 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       clearTimeout(textDebounceTimer);
       textDebounceTimer = null;
     }
-    if (previewSnapshotTimer) {
-      clearTimeout(previewSnapshotTimer);
-      previewSnapshotTimer = null;
+    this.resetGestureState();
+    if (cropRenderTimer) {
+      clearTimeout(cropRenderTimer);
+      cropRenderTimer = null;
     }
-    previewSnapshotInFlight = false;
-    previewSnapshotPending = false;
     this.persistDraft();
   },
 
-  async renderPreview(): Promise<boolean> {
+  async renderPreview(options?: { renderBase?: boolean }): Promise<boolean> {
     const { template, draft } = this.data;
     if (!template || !draft) {
       return false;
     }
 
+    const token = ++previewLayerRenderToken;
+    const shouldRenderBase = options?.renderBase ?? true;
+
     try {
-      await RendererService.renderTemplateToCanvas({
+      const nextData: Partial<TemplateDetailPageData> = {};
+      if (shouldRenderBase || !this.data.previewBaseImagePath) {
+        await RendererService.renderBaseLayerToCanvas({
+          scope: this,
+          canvasId: 'previewBaseCanvas',
+          template,
+          draft,
+        });
+        const previewBaseImagePath = await RendererService.exportCanvasImage({
+          scope: this,
+          canvasId: 'previewBaseCanvas',
+          template,
+          outputWidth: 1080,
+        });
+        if (token !== previewLayerRenderToken) {
+          return false;
+        }
+        nextData.previewBaseImagePath = previewBaseImagePath;
+      }
+
+      const renderResult = await RendererService.renderTextLayerToCanvas({
         scope: this,
-        canvasId: 'detailCanvas',
+        canvasId: 'previewTextCanvas',
         template,
         draft,
       });
-      this.schedulePreviewSnapshot();
+      const previewTextImagePath = await RendererService.exportCanvasImage({
+        scope: this,
+        canvasId: 'previewTextCanvas',
+        template,
+        outputWidth: 1080,
+      });
+      if (token !== previewLayerRenderToken) {
+        return false;
+      }
+      nextData.previewTextImagePath = previewTextImagePath;
+      this.setData(nextData as Pick<TemplateDetailPageData, 'previewBaseImagePath' | 'previewTextImagePath'>);
+      this.syncOverflowKeys(renderResult.overflowTextKeys);
       return true;
     } catch (_error) {
       return false;
     }
   },
 
-  schedulePreviewSnapshot(delay = 60) {
-    previewRenderToken += 1;
-    if (previewSnapshotTimer) {
-      clearTimeout(previewSnapshotTimer);
-      previewSnapshotTimer = null;
+  async renderExportCanvas(): Promise<boolean> {
+    const { template, draft } = this.data;
+    if (!template || !draft) {
+      return false;
     }
-    previewSnapshotTimer = setTimeout(() => {
-      previewSnapshotTimer = null;
-      this.flushPreviewSnapshot();
-    }, delay) as unknown as number;
+    try {
+      const renderResult = await RendererService.renderTemplateToCanvas({
+        scope: this,
+        canvasId: 'detailCanvas',
+        template,
+        draft,
+      });
+      this.syncOverflowKeys(renderResult.overflowTextKeys);
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  },
+
+  syncOverflowKeys(overflowKeys: string[]) {
+    const nextKeys = Array.from(new Set(overflowKeys));
+    const prevKeys = this.data.overflowKeys;
+    if (prevKeys.length === nextKeys.length && prevKeys.every((key, index) => key === nextKeys[index])) {
+      return;
+    }
+    this.setData({ overflowKeys: nextKeys }, () => {
+      this.refreshComputedData();
+    });
   },
 
   async flushPreviewSnapshot() {
-    if (previewSnapshotInFlight) {
-      previewSnapshotPending = true;
+    const { template } = this.data;
+    if (!template || previewSnapshotInFlight) {
       return;
     }
 
-    const token = previewRenderToken;
     previewSnapshotInFlight = true;
     try {
-      const previewImagePath = await RendererService.exportCanvasImage(this, 'detailCanvas');
-      if (token !== previewRenderToken) {
+      const rendered = await this.renderExportCanvas();
+      if (!rendered) {
         return;
       }
+      const previewImagePath = await RendererService.exportCanvasImage({
+        scope: this,
+        canvasId: 'detailCanvas',
+        template,
+        outputWidth: 720,
+      });
       this.setData({ previewImagePath });
     } catch (_error) {
       // Keep previous preview image on export failure.
     } finally {
       previewSnapshotInFlight = false;
-      if (previewSnapshotPending) {
-        previewSnapshotPending = false;
-        this.schedulePreviewSnapshot(16);
-      }
     }
   },
 
@@ -383,8 +678,27 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
   },
 
   onTapBack() {
+    if (this.data.isFullPreview) {
+      this.setData({ isFullPreview: false });
+      return;
+    }
     this.persistDraft();
     wx.navigateBack();
+  },
+
+  onTapOutsideEditor() {
+    if (!this.data.editorVisible || this.data.isFullPreview) {
+      return;
+    }
+    this.onCloseEditor();
+  },
+
+  onTapEditorPanel() {
+    // Prevent panel taps from bubbling to page root.
+  },
+
+  onPanelTouchMove() {
+    // Prevent panel touchmove from bubbling to preview scroll area.
   },
 
   onOpenEditor() {
@@ -396,6 +710,7 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       {
         editorVisible: true,
         showEntryAction: false,
+        isFullPreview: false,
       },
       () => {
         this.refreshComputedData();
@@ -412,6 +727,7 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       {
         editorVisible: false,
         showEntryAction: true,
+        isFullPreview: false,
       },
       () => {
         this.refreshComputedData();
@@ -420,10 +736,37 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
   },
 
   onSwitchTab(event: WechatMiniprogram.BaseEvent) {
-    const tab = event.currentTarget.dataset.tab as 'text' | 'image' | 'bg';
+    const tab = event.currentTarget.dataset.tab as 'text' | 'image' | 'font' | 'bg';
+    if (tab !== 'image') {
+      this.resetGestureState();
+      if (this.data.draft?.image) {
+        this.persistDraft();
+      }
+    }
     this.setData({ activeTab: tab }, () => {
       this.refreshComputedData();
     });
+  },
+
+  onSelectRemarkFont(event: WechatMiniprogram.BaseEvent) {
+    const fontKey = event.currentTarget.dataset.fontKey as string;
+    if (!fontKey || !this.data.draft) {
+      return;
+    }
+    const preset = getRemarkFontPreset(fontKey);
+    if (this.data.draft.remarkFontPresetKey === preset.key) {
+      return;
+    }
+
+    const nextDraft: TemplateDetailPageData['draft'] = {
+      ...this.data.draft,
+      remarkFontPresetKey: preset.key,
+    };
+    this.setData({ draft: nextDraft }, () => {
+      this.refreshComputedData();
+    });
+    this.renderPreview({ renderBase: false });
+    this.persistDraft();
   },
 
   onTextInput(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
@@ -432,6 +775,23 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
 
     if (!key) {
       return;
+    }
+
+    if (key === 'name') {
+      const prev = this.data.draft?.text.name || '';
+      const isAppending = value.length > prev.length;
+      if (isAppending && !canTitleFitTwoLines(value)) {
+        if (!titleLimitToastTimer) {
+          wx.showToast({
+            title: '标题最多显示两行',
+            icon: 'none',
+          });
+          titleLimitToastTimer = setTimeout(() => {
+            titleLimitToastTimer = null;
+          }, 1200) as unknown as number;
+        }
+        return;
+      }
     }
 
     this.patchTextField(key, value, false);
@@ -459,12 +819,12 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       },
     );
 
-    this.renderPreview();
-
     if (persistNow) {
+      this.renderPreview({ renderBase: false });
       this.persistDraft();
       return;
     }
+    this.renderPreview({ renderBase: false });
 
     if (textDebounceTimer) {
       clearTimeout(textDebounceTimer);
@@ -517,19 +877,8 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     this.patchTextField('time', textValue, true);
   },
 
-  onPickAddress(event: WechatMiniprogram.CustomEvent<{ value: string[] }>) {
-    const region = event.detail.value || [];
-    const textValue = region[1] || region[0] || '';
-    this.setData({ regionValue: region });
-    this.patchTextField('address', textValue, true);
-  },
-
   async onChooseFromAlbum() {
     await this.chooseImage(['album']);
-  },
-
-  async onChooseFromCamera() {
-    await this.chooseImage(['camera']);
   },
 
   async chooseImage(sourceType: Array<'album' | 'camera'>) {
@@ -557,7 +906,6 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       this.setData(
         {
           draft: nextDraft,
-          scaleSliderValue: Math.round(cropParams.scale * 100),
         },
         () => {
           this.refreshComputedData();
@@ -574,23 +922,48 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     }
   },
 
-  onScaleSliderChange(event: WechatMiniprogram.CustomEvent<{ value: number }>) {
-    const sliderValue = Number(event.detail.value || 100);
-    this.applyCropPatch({ scale: sliderValue / 100 }, true);
+  resetGestureState() {
+    gestureMode = 'idle';
+    lastTouchX = 0;
+    lastTouchY = 0;
+    gestureCrop = null;
+    gestureSlotWidth = 0;
+    gestureSlotHeight = 0;
+    gestureSlotLeftClient = 0;
+    gestureSlotTopClient = 0;
+    gestureCanvasPerClientX = 1;
+    gestureCanvasPerClientY = 1;
+    pinchStartDistance = 0;
+    pinchStartCenterX = 0;
+    pinchStartCenterY = 0;
+    pinchStartCrop = null;
   },
 
-  async applyCropPatch(patch: Partial<{ x: number; y: number; scale: number }>, persistNow = false) {
-    const { template, draft } = this.data;
-    if (!template || !draft?.image) {
+  scheduleCropRender() {
+    if (cropRenderTimer) {
+      return;
+    }
+    cropRenderTimer = setTimeout(() => {
+      cropRenderTimer = null;
+      this.renderPreview();
+    }, CROP_RENDER_THROTTLE_MS) as unknown as number;
+  },
+
+  flushCropRender() {
+    if (cropRenderTimer) {
+      clearTimeout(cropRenderTimer);
+      cropRenderTimer = null;
+    }
+    this.renderPreview();
+  },
+
+  setCropParams(cropParams: CropParams, persistNow = false, immediateRender = false) {
+    const draft = this.data.draft;
+    if (!draft?.image) {
       return;
     }
 
-    const canvasSize = await this.getCanvasSize();
-    const slotWidth = canvasSize.width * template.imageSlot.width;
-    const slotHeight = canvasSize.height * template.imageSlot.height;
-
-    const cropParams = ImageEditService.applyCropToRenderState(draft.image.cropParams, patch, slotWidth, slotHeight);
-
+    gestureCrop = cropParams;
     const nextDraft: TemplateDetailPageData['draft'] = {
       ...draft,
       image: {
@@ -598,60 +971,236 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
         cropParams,
       },
     };
+    this.setData({ draft: nextDraft });
 
-    this.setData(
-      {
-        draft: nextDraft,
-        scaleSliderValue: Math.round(cropParams.scale * 100),
-      },
-      () => {
-        this.refreshComputedData();
-      },
-    );
-
-    this.renderPreview();
+    if (immediateRender) {
+      this.flushCropRender();
+    } else {
+      this.scheduleCropRender();
+    }
 
     if (persistNow) {
       this.persistDraft();
     }
   },
 
-  onPreviewTouchStart(event: WechatMiniprogram.TouchEvent) {
+  async getPreviewRect(): Promise<PreviewRect | null> {
+    return new Promise((resolve) => {
+      wx.createSelectorQuery()
+        .in(this)
+        .select('.ticket-preview')
+        .boundingClientRect((rect) => {
+          const nextRect = rect as PreviewRect | null;
+          if (!nextRect?.width || !nextRect?.height) {
+            resolve(null);
+            return;
+          }
+          resolve(nextRect);
+        })
+        .exec();
+    });
+  },
+
+  async ensureGestureContext(): Promise<boolean> {
+    const { template, draft } = this.data;
+    if (!template || !draft?.image) {
+      return false;
+    }
+
+    const [canvasSize, previewRect] = await Promise.all([this.getCanvasSize(), this.getPreviewRect()]);
+    if (!previewRect) {
+      return false;
+    }
+
+    const slotWidth = canvasSize.width * template.imageSlot.width;
+    const slotHeight = canvasSize.height * template.imageSlot.height;
+    const slotWidthInPreview = previewRect.width * template.imageSlot.width;
+    const slotHeightInPreview = previewRect.height * template.imageSlot.height;
+    if (slotWidth <= 0 || slotHeight <= 0 || slotWidthInPreview <= 0 || slotHeightInPreview <= 0) {
+      return false;
+    }
+
+    gestureSlotWidth = slotWidth;
+    gestureSlotHeight = slotHeight;
+    gestureSlotLeftClient = previewRect.left + previewRect.width * template.imageSlot.x;
+    gestureSlotTopClient = previewRect.top + previewRect.height * template.imageSlot.y;
+    gestureCanvasPerClientX = slotWidth / slotWidthInPreview;
+    gestureCanvasPerClientY = slotHeight / slotHeightInPreview;
+    gestureCrop = {
+      ...draft.image.cropParams,
+    };
+    return true;
+  },
+
+  toSlotPoint(clientX: number, clientY: number): { x: number; y: number } {
+    return {
+      x: (clientX - gestureSlotLeftClient) * gestureCanvasPerClientX,
+      y: (clientY - gestureSlotTopClient) * gestureCanvasPerClientY,
+    };
+  },
+
+  startPinchGesture(touches: WechatMiniprogram.TouchDetail[]) {
+    if (touches.length < 2 || !gestureCrop) {
+      return;
+    }
+    const [touchA, touchB] = touches;
+    pinchStartDistance = getTouchDistance(touchA, touchB);
+    if (pinchStartDistance <= 0) {
+      return;
+    }
+    const center = getTouchCenter(touchA, touchB);
+    gestureMode = 'pinch';
+    pinchStartCenterX = center.x;
+    pinchStartCenterY = center.y;
+    pinchStartCrop = { ...gestureCrop };
+  },
+
+  async onPreviewTouchStart(event: WechatMiniprogram.TouchEvent) {
     if (this.data.activeTab !== 'image' || !this.data.draft?.image) {
       return;
     }
 
-    const touch = event.changedTouches[0];
-    dragging = true;
-    lastTouchX = touch.clientX;
-    lastTouchY = touch.clientY;
-  },
-
-  onPreviewTouchMove(event: WechatMiniprogram.TouchEvent) {
-    if (!dragging || this.data.activeTab !== 'image' || !this.data.draft?.image) {
+    const hasContext = await this.ensureGestureContext();
+    if (!hasContext) {
       return;
     }
 
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - lastTouchX;
-    const deltaY = touch.clientY - lastTouchY;
-    lastTouchX = touch.clientX;
-    lastTouchY = touch.clientY;
-
-    const currentCrop = this.data.draft.image.cropParams;
-    this.applyCropPatch({
-      x: currentCrop.x + deltaX,
-      y: currentCrop.y + deltaY,
-    });
-  },
-
-  onPreviewTouchEnd() {
-    if (!dragging) {
+    if (event.touches.length >= 2) {
+      this.startPinchGesture(event.touches);
       return;
     }
 
-    dragging = false;
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    const point = getTouchXY(touch);
+    gestureMode = 'drag';
+    lastTouchX = point.x;
+    lastTouchY = point.y;
+    pinchStartDistance = 0;
+    pinchStartCrop = null;
+  },
+
+  async onPreviewTouchMove(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.activeTab !== 'image' || !this.data.draft?.image) {
+      return;
+    }
+
+    if (!gestureCrop || gestureSlotWidth <= 0 || gestureSlotHeight <= 0) {
+      const hasContext = await this.ensureGestureContext();
+      if (!hasContext) {
+        return;
+      }
+    }
+
+    if (event.touches.length >= 2) {
+      if (gestureMode !== 'pinch') {
+        this.startPinchGesture(event.touches);
+      }
+
+      const baseCrop = pinchStartCrop;
+      if (!baseCrop || pinchStartDistance <= 0 || baseCrop.scale <= 0) {
+        return;
+      }
+      const [touchA, touchB] = event.touches;
+      const distance = getTouchDistance(touchA, touchB);
+      if (distance <= 0) {
+        return;
+      }
+      const center = getTouchCenter(touchA, touchB);
+      const nextScale = (distance / pinchStartDistance) * baseCrop.scale;
+      const startCenterInSlot = this.toSlotPoint(pinchStartCenterX, pinchStartCenterY);
+      const currentCenterInSlot = this.toSlotPoint(center.x, center.y);
+      const scaleRatio = nextScale / baseCrop.scale;
+      const nextX = currentCenterInSlot.x - (startCenterInSlot.x - baseCrop.x) * scaleRatio;
+      const nextY = currentCenterInSlot.y - (startCenterInSlot.y - baseCrop.y) * scaleRatio;
+      const nextCrop = ImageEditService.applyCropToRenderState(
+        baseCrop,
+        {
+          x: nextX,
+          y: nextY,
+          scale: nextScale,
+        },
+        gestureSlotWidth,
+        gestureSlotHeight,
+      );
+      this.setCropParams(nextCrop);
+      return;
+    }
+
+    const touch = event.touches[0];
+    if (!touch) {
+      return;
+    }
+
+    if (gestureMode !== 'drag') {
+      const point = getTouchXY(touch);
+      gestureMode = 'drag';
+      lastTouchX = point.x;
+      lastTouchY = point.y;
+      pinchStartDistance = 0;
+      pinchStartCrop = null;
+      return;
+    }
+
+    const point = getTouchXY(touch);
+    const deltaX = (point.x - lastTouchX) * gestureCanvasPerClientX;
+    const deltaY = (point.y - lastTouchY) * gestureCanvasPerClientY;
+    lastTouchX = point.x;
+    lastTouchY = point.y;
+
+    const baseCrop = gestureCrop;
+    if (!baseCrop) {
+      return;
+    }
+    const nextCrop = ImageEditService.applyCropToRenderState(
+      baseCrop,
+      {
+        x: baseCrop.x + deltaX,
+        y: baseCrop.y + deltaY,
+      },
+      gestureSlotWidth,
+      gestureSlotHeight,
+    );
+    this.setCropParams(nextCrop);
+  },
+
+  onPreviewTouchEnd(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.activeTab !== 'image' || !this.data.draft?.image) {
+      return;
+    }
+
+    if (event.touches.length >= 2) {
+      this.startPinchGesture(event.touches);
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const point = getTouchXY(touch);
+      gestureMode = 'drag';
+      lastTouchX = point.x;
+      lastTouchY = point.y;
+      pinchStartDistance = 0;
+      pinchStartCrop = null;
+      return;
+    }
+
+    if (gestureMode === 'idle') {
+      return;
+    }
+
+    gestureMode = 'idle';
+    pinchStartDistance = 0;
+    pinchStartCrop = null;
+    this.flushCropRender();
     this.persistDraft();
+  },
+
+  onPreviewTouchCancel(event: WechatMiniprogram.TouchEvent) {
+    this.onPreviewTouchEnd(event);
   },
 
   onTapColor(event: WechatMiniprogram.BaseEvent) {
@@ -672,23 +1221,19 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     this.renderPreview();
   },
 
-  onTapFullPreview() {
-    const { template } = this.data;
-    if (!template || this.data.isRouting || this.data.isSaving) {
+  async onTapFullPreview() {
+    if (this.data.isSaving) {
       return;
     }
+    await this.flushPreviewSnapshot();
+    this.setData({ isFullPreview: true });
+  },
 
-    this.persistDraft();
-    this.setData({ isRouting: true }, () => {
-      setTimeout(() => {
-        wx.navigateTo({
-          url: `/pages/preview/index?templateId=${template.id}`,
-          fail: () => {
-            this.setData({ isRouting: false });
-          },
-        });
-      }, 16);
-    });
+  onExitFullPreview() {
+    if (!this.data.isFullPreview) {
+      return;
+    }
+    this.setData({ isFullPreview: false });
   },
 
   async onTapSaveAlbum() {
@@ -700,16 +1245,15 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     this.setData({ isSaving: true });
     wx.showLoading({ title: '保存中...' });
     try {
-      if (previewSnapshotTimer) {
-        clearTimeout(previewSnapshotTimer);
-        previewSnapshotTimer = null;
-      }
-      previewSnapshotPending = false;
-      const rendered = await this.renderPreview();
+      const rendered = await this.renderExportCanvas();
       if (!rendered) {
         throw new Error('render failed');
       }
-      const imagePath = await RendererService.exportCanvasImage(this, 'detailCanvas');
+      const imagePath = await RendererService.exportCanvasImage({
+        scope: this,
+        canvasId: 'detailCanvas',
+        template,
+      });
       await saveToAlbum(imagePath);
       CacheService.clearTemplateDraft(template.id);
       wx.hideLoading();
@@ -721,7 +1265,16 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
       wx.hideLoading();
       this.setData({ isSaving: false });
       const errMsg = (error as { errMsg?: string })?.errMsg ?? '';
+      const platform = wx.getSystemInfoSync().platform;
       const denied = errMsg.includes('auth deny') || errMsg.includes('auth denied');
+      if (platform === 'devtools') {
+        wx.showModal({
+          title: '保存失败',
+          content: '开发者工具无法写入系统相册，请使用真机预览后保存。',
+          showCancel: false,
+        });
+        return;
+      }
       if (denied) {
         wx.showModal({
           title: '保存失败',
@@ -735,7 +1288,11 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
         });
         return;
       }
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      wx.showModal({
+        title: '保存失败',
+        content: errMsg || '未知错误，请重试',
+        showCancel: false,
+      });
     }
   },
 
@@ -747,12 +1304,15 @@ Page<TemplateDetailPageData, WechatMiniprogram.IAnyObject>({
     return new Promise((resolve) => {
       wx.createSelectorQuery()
         .in(this)
-        .select('#detailCanvas')
+        .select('#previewBaseCanvas')
         .fields({ size: true })
         .exec((res) => {
           const size = res?.[0];
           if (!size?.width || !size?.height) {
-            resolve({ width: 320, height: 510 });
+            const template = this.data.template;
+            const fallbackWidth = 320;
+            const fallbackRatio = template ? template.canvasSize.height / template.canvasSize.width : 1.6;
+            resolve({ width: fallbackWidth, height: Math.round(fallbackWidth * fallbackRatio) });
             return;
           }
           cachedCanvasWidth = size.width;

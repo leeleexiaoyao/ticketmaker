@@ -4,6 +4,17 @@ page {
   font-family: "PingFang SC", "Noto Sans SC", sans-serif;
 }
 
+view,
+button,
+input,
+textarea,
+image,
+scroll-view,
+swiper,
+swiper-item {
+  border-radius: 0 !important;
+}
+
 .container {
   min-height: 100vh;
   box-sizing: border-box;
@@ -11,26 +22,26 @@ page {
 
 .card {
   background: rgba(24, 26, 31, 0.92);
-  border-radius: 24rpx;
+  border-radius: 0;
   box-shadow: 0 16rpx 34rpx rgba(0, 0, 0, 0.36);
   border: 1rpx solid rgba(255, 255, 255, 0.08);
 }
 
 .primary-btn {
   height: 88rpx;
-  border-radius: 999rpx;
+  border-radius: 0;
   border: none;
   background: linear-gradient(135deg, #f5f5f7 0%, #cfd3da 100%);
   color: #101114;
   font-size: 30rpx;
-  font-weight: 700;
+  font-weight: 500;
   box-shadow: 0 10rpx 22rpx rgba(0, 0, 0, 0.42);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ghost-btn {
   height: 88rpx;
-  border-radius: 999rpx;
+  border-radius: 0;
   border: none;
   background: rgba(255, 255, 255, 0.03);
   color: #f3f4f6;
@@ -54,4 +65,20 @@ button::after {
 
 .ghost-btn:active {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* 主题维护说明：修改公共组件颜色时，请成对维护 dark/light 两套配色。 */
+.theme-light .card {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16rpx 34rpx rgba(31, 53, 82, 0.12);
+  border: 1rpx solid rgba(31, 53, 82, 0.1);
+}
+
+.theme-light .ghost-btn {
+  background: rgba(41, 62, 95, 0.08);
+  color: #1d2a40;
+}
+
+.theme-light .ghost-btn:active {
+  background: rgba(41, 62, 95, 0.16);
 }

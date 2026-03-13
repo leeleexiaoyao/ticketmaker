@@ -1,4 +1,4 @@
-<view class="container home-page" style="{{homePaddingStyle}}">
+<view class="container home-page {{themeClass}}" style="{{homePaddingStyle}}">
   <view class="home-header">
     <view class="category-wrap">
       <view class="category-tabs">
@@ -12,6 +12,7 @@
         >
           {{item.label}}
         </view>
+        <view class="category-indicator" style="{{categoryIndicatorStyle}}"></view>
       </view>
       <view class="avatar-btn" bindtap="onOpenProfile" hover-class="avatar-press">
         <view class="avatar-inner"></view>
@@ -22,9 +23,10 @@
   <view class="templates-card">
     <swiper
       class="template-swiper"
+      style="{{swiperHeightStyle}}"
       current="{{currentIndex}}"
-      previous-margin="110rpx"
-      next-margin="110rpx"
+      previous-margin="260rpx"
+      next-margin="260rpx"
       bindchange="onSwiperChange"
     >
       <swiper-item wx:for="{{templates}}" wx:key="id">
@@ -36,26 +38,12 @@
             hover-class="template-card-press"
           >
             <view class="preview-frame">
-              <view class="preview-image-area"></view>
-              <view class="preview-text-group">
-                <text class="preview-title">{{item.name}}</text>
-                <text class="preview-subtitle">点击进入模板详情与编辑</text>
-              </view>
+              <image class="preview-image-area" src="{{item.preview.src}}" mode="widthFix"></image>
             </view>
-            <text class="template-name">{{item.name}}</text>
           </view>
         </view>
       </swiper-item>
     </swiper>
-
-    <view class="swiper-indicator-row">
-      <view
-        wx:for="{{templates}}"
-        wx:for-index="idx"
-        wx:key="id"
-        class="indicator-dot {{idx === currentIndex ? 'active' : ''}}"
-      ></view>
-    </view>
   </view>
 
   <view wx:if="{{isRouting}}" class="route-mask">

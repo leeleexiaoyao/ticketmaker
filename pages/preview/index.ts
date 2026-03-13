@@ -5,6 +5,7 @@ import { TemplateService } from '../../services/template.service';
 import { TemplateDraft } from '../../models/draft';
 import { TemplateConfig, TemplateId } from '../../models/template';
 import { getSafeTopStyle } from '../../utils/safe-area';
+import { applyNativeTheme, getCurrentThemeMode, getThemeClass, ThemeMode } from '../../utils/theme';
 
 interface PreviewPageData {
   template: TemplateConfig | null;
@@ -12,7 +13,19 @@ interface PreviewPageData {
   draft: TemplateDraft | null;
   safeTopStyle: string;
   isSaving: boolean;
+  previewCanvasStyle: string;
+  themeMode: ThemeMode;
+  themeClass: string;
 }
+
+const CANVAS_WIDTH_RPX = 375;
+
+const buildPreviewCanvasStyle = (template: TemplateConfig | null): string => {
+  const ratio = template ? template.canvasSize.height / template.canvasSize.width : 1.6;
+  const clampedRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1.6;
+  const heightRpx = (CANVAS_WIDTH_RPX * clampedRatio).toFixed(3);
+  return `width: ${CANVAS_WIDTH_RPX}rpx; height: ${heightRpx}rpx;`;
+};
 
 const saveToAlbum = (filePath: string): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -30,9 +43,22 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
     draft: null,
     safeTopStyle: 'padding-top: 48px;',
     isSaving: false,
+    previewCanvasStyle: 'width: 375rpx; height: 770.455rpx;',
+    themeMode: 'dark',
+    themeClass: 'theme-dark',
+  },
+
+  syncThemeMode() {
+    const themeMode = getCurrentThemeMode();
+    applyNativeTheme(themeMode);
+    this.setData({
+      themeMode,
+      themeClass: getThemeClass(themeMode),
+    });
   },
 
   onLoad(options) {
+    this.syncThemeMode();
     const templateId = options.templateId as TemplateId;
     const template = TemplateService.getTemplateById(templateId);
 
@@ -44,7 +70,13 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
 
     const draft = DraftService.mergeTemplateDraft(template, CacheService.getTemplateDraft(templateId));
 
-    this.setData({ template, draft, templateName: template.name, safeTopStyle: getSafeTopStyle(6) });
+    this.setData({
+      template,
+      draft,
+      templateName: template.name,
+      safeTopStyle: getSafeTopStyle(6),
+      previewCanvasStyle: buildPreviewCanvasStyle(template),
+    });
   },
 
   onReady() {
@@ -52,6 +84,7 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
   },
 
   onShow() {
+    this.syncThemeMode();
     this.renderPreview();
   },
 
@@ -98,7 +131,11 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
       if (!rendered) {
         throw new Error('render failed');
       }
-      const imagePath = await RendererService.exportCanvasImage(this, 'previewCanvas');
+      const imagePath = await RendererService.exportCanvasImage({
+        scope: this,
+        canvasId: 'previewCanvas',
+        template: this.data.template,
+      });
       await saveToAlbum(imagePath);
 
       CacheService.clearTemplateDraft(this.data.template.id);
@@ -112,7 +149,17 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
       wx.hideLoading();
       this.setData({ isSaving: false });
       const errMsg = (error as { errMsg?: string })?.errMsg ?? '';
+      const platform = wx.getSystemInfoSync().platform;
       const denied = errMsg.includes('auth deny') || errMsg.includes('auth denied');
+
+      if (platform === 'devtools') {
+        wx.showModal({
+          title: '保存失败',
+          content: '开发者工具无法写入系统相册，请使用真机预览后保存。',
+          showCancel: false,
+        });
+        return;
+      }
 
       if (denied) {
         wx.showModal({
@@ -128,7 +175,11 @@ Page<PreviewPageData, WechatMiniprogram.IAnyObject>({
         return;
       }
 
-      wx.showToast({ title: '保存失败，请重试', icon: 'none' });
+      wx.showModal({
+        title: '保存失败',
+        content: errMsg || '未知错误，请重试',
+        showCancel: false,
+      });
     }
   },
 });

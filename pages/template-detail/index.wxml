@@ -1,159 +1,215 @@
-<view class="{{pageClass}}">
-  <view class="top-nav-wrap" style="{{safeTopStyle}}">
-    <view class="top-nav">
-      <view class="back-btn" bindtap="onTapBack">
-        <view class="back-arrow"></view>
-      </view>
-    </view>
+<view class="{{pageClass}} {{themeClass}}" bindtap="onTapOutsideEditor">
+  <view wx:if="{{isFullPreview}}" class="full-preview-layer" bindtap="onExitFullPreview">
+    <image wx:if="{{previewImagePath}}" class="full-preview-image" src="{{previewImagePath}}" mode="aspectFit" fade-show="{{false}}"></image>
+    <view wx:else class="full-preview-empty" style="{{fullPreviewEmptyStyle}}"></view>
   </view>
 
-  <view class="preview-section">
-    <view class="preview-wrapper">
-      <view
-        class="ticket-preview {{showImageTab ? 'preview-draggable' : ''}}"
-        bindtouchstart="onPreviewTouchStart"
-        bindtouchmove="onPreviewTouchMove"
-        bindtouchend="onPreviewTouchEnd"
-      >
-        <image wx:if="{{previewImagePath}}" class="ticket-preview-image" src="{{previewImagePath}}" mode="aspectFill"></image>
-        <view wx:else class="ticket-preview-empty"></view>
-        <view wx:if="{{showImageTab}}" class="drag-tip">拖拽预览可调整图片位置</view>
-      </view>
-    </view>
-
-    <view wx:if="{{showEntryAction}}" class="entry-action">
-      <button class="primary-btn entry-btn" bindtap="onOpenEditor">开始编辑</button>
-    </view>
-  </view>
-
-  <view class="{{editorPanelClass}}">
-    <view class="panel-handle-row">
-      <view class="panel-handle"></view>
-      <view class="panel-title">编辑面板</view>
-      <view class="panel-close" bindtap="onCloseEditor">收起</view>
-    </view>
-
-    <view class="tab-row">
-      <view class="{{textTabClass}}" data-tab="text" bindtap="onSwitchTab">文字</view>
-      <view class="{{imageTabClass}}" data-tab="image" bindtap="onSwitchTab">图片</view>
-      <view class="{{bgTabClass}}" data-tab="bg" bindtap="onSwitchTab">背景</view>
-    </view>
-
-    <view class="quick-upload-row">
-      <button class="ghost-btn quick-upload-btn" bindtap="onChooseFromAlbum">上传图片</button>
-    </view>
-
-    <scroll-view class="tab-content" scroll-y>
-      <view wx:if="{{showTextTab}}" class="text-form">
-        <block wx:for="{{fieldsForRender}}" wx:key="key">
-          <view wx:if="{{item.isTimeField && hasAddressField}}" class="field-item combined-item">
-            <view class="combined-fields">
-              <view class="combined-cell">
-                <view class="combined-label">时间</view>
-                <picker class="combined-picker" mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeIndex}}" bindchange="onPickDateTime" bindcolumnchange="onDateTimeColumnChange">
-                  <view class="field-picker {{item.value ? '' : 'placeholder'}}">{{item.value || item.placeholder}}</view>
-                </picker>
-              </view>
-
-              <view class="combined-cell">
-                <view class="combined-label">地点</view>
-                <picker class="combined-picker" mode="region" value="{{regionValue}}" bindchange="onPickAddress">
-                  <view class="field-picker {{draft.text.address ? '' : 'placeholder'}}">{{draft.text.address || addressPlaceholder}}</view>
-                </picker>
-              </view>
-            </view>
-          </view>
-
-          <view wx:if="{{!(item.isTimeField && hasAddressField) && (item.key !== 'address' || !hasAddressField)}}" class="field-item">
-            <view class="field-label">{{item.label}}</view>
-            <view class="field-control">
-              <picker wx:if="{{item.isTimeField && !hasAddressField}}" mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeIndex}}" bindchange="onPickDateTime" bindcolumnchange="onDateTimeColumnChange">
-                <view class="field-picker {{item.value ? '' : 'placeholder'}}">{{item.value || item.placeholder}}</view>
-              </picker>
-
-              <picker wx:if="{{item.isAddressField && !hasAddressField}}" mode="region" value="{{regionValue}}" bindchange="onPickAddress">
-                <view class="field-picker {{item.value ? '' : 'placeholder'}}">{{item.value || item.placeholder}}</view>
-              </picker>
-
-              <textarea
-                wx:if="{{item.isRemark}}"
-                class="field-input textarea"
-                auto-height
-                maxlength="{{item.maxLength}}"
-                data-key="{{item.key}}"
-                placeholder="{{item.placeholder}}"
-                value="{{item.value}}"
-                bindinput="onTextInput"
-              ></textarea>
-
-              <input
-                wx:if="{{!item.isTimeField && !item.isAddressField && !item.isRemark}}"
-                class="field-input"
-                data-key="{{item.key}}"
-                maxlength="{{item.maxLength}}"
-                placeholder="{{item.placeholder}}"
-                value="{{item.value}}"
-                bindinput="onTextInput"
-              />
-            </view>
-          </view>
-        </block>
-      </view>
-
-      <view wx:if="{{showImageTab}}" class="image-tab">
-        <view class="upload-entry" bindtap="onChooseFromAlbum">
-          <view class="upload-entry-icon"></view>
-          <view class="upload-entry-title">点击上传图片</view>
-          <view class="upload-entry-subtitle">支持拖拽调整位置与缩放</view>
-        </view>
-
-        <view class="upload-actions">
-          <button class="ghost-btn upload-btn" bindtap="onChooseFromCamera">拍照上传</button>
-          <button class="ghost-btn upload-btn" bindtap="onChooseFromAlbum">相册选择</button>
-        </view>
-
-        <view class="edit-help">上传后可在上方预览区拖拽图片位置</view>
-
-        <view wx:if="{{showScaleSlider}}" class="slider-wrap">
-          <view class="slider-label">缩放：{{scaleSliderValue}}%</view>
-          <slider
-            min="10"
-            max="400"
-            step="1"
-            value="{{scaleSliderValue}}"
-            activeColor="#d1d5db"
-            block-color="#f3f4f6"
-            bindchange="onScaleSliderChange"
-          />
+  <block wx:else>
+    <view class="top-nav-wrap" style="{{safeTopStyle}}">
+      <view class="top-nav">
+        <view class="back-btn" bindtap="onTapBack">
+          <view class="back-arrow"></view>
         </view>
       </view>
+    </view>
 
-      <view wx:if="{{showBgTab}}" class="bg-tab">
-        <view class="color-label">颜色：</view>
-        <view class="color-grid">
+    <scroll-view
+      class="preview-scroll"
+      scroll-y="{{!showImageTab}}"
+      show-scrollbar="{{false}}"
+      enhanced="{{true}}"
+      bounces="{{false}}"
+      enable-flex="{{true}}"
+      bindtap="onTapOutsideEditor"
+    >
+      <view class="preview-section">
+        <view class="preview-wrapper">
           <view
-            wx:for="{{colorsForRender}}"
-            wx:key="value"
-            class="{{item.className}}"
-            style="background: {{item.value}}"
-            data-color="{{item.value}}"
-            bindtap="onTapColor"
-          ></view>
+            class="ticket-preview {{showImageTab ? 'preview-draggable' : ''}}"
+            style="{{previewCanvasStyle}}"
+            bindtouchstart="onPreviewTouchStart"
+            bindtouchmove="onPreviewTouchMove"
+            bindtouchend="onPreviewTouchEnd"
+            bindtouchcancel="onPreviewTouchCancel"
+          >
+            <image wx:if="{{previewBaseImagePath}}" class="ticket-preview-image base" src="{{previewBaseImagePath}}" mode="scaleToFill" fade-show="{{false}}"></image>
+            <view wx:else class="ticket-preview-empty"></view>
+            <image wx:if="{{previewTextImagePath}}" class="ticket-preview-image text" src="{{previewTextImagePath}}" mode="scaleToFill" fade-show="{{false}}"></image>
+            <view wx:if="{{showImageTab}}" class="crop-mask-layer">
+              <view class="crop-mask-piece" style="{{imageSlotMaskTopStyle}}"></view>
+              <view class="crop-mask-piece" style="{{imageSlotMaskRightStyle}}"></view>
+              <view class="crop-mask-piece" style="{{imageSlotMaskBottomStyle}}"></view>
+              <view class="crop-mask-piece" style="{{imageSlotMaskLeftStyle}}"></view>
+            </view>
+            <view wx:if="{{showImageTab}}" class="crop-frame" style="{{imageSlotFrameStyle}}">
+              <view class="crop-corner lt"></view>
+              <view class="crop-corner rt"></view>
+              <view class="crop-corner rb"></view>
+              <view class="crop-corner lb"></view>
+            </view>
+            <view wx:if="{{showImageTab}}" class="drag-tip">海报仅显示框内，单指拖动，双指缩放</view>
+          </view>
+        </view>
+
+        <view wx:if="{{showEntryAction}}" class="entry-action">
+          <button class="primary-btn entry-btn" catchtap="onOpenEditor">开始编辑</button>
         </view>
       </view>
     </scroll-view>
 
-    <view class="panel-footer">
-      <button class="ghost-btn footer-btn" bindtap="onTapFullPreview">全屏预览</button>
-      <button class="primary-btn footer-btn" disabled="{{isSaving}}" bindtap="onTapSaveAlbum">
-        {{isSaving ? '保存中...' : '保存相册'}}
-      </button>
-    </view>
-  </view>
+    <view
+      class="{{editorPanelClass}}"
+      catchtap="onTapEditorPanel"
+      catchtouchmove="onPanelTouchMove"
+    >
+      <view class="tab-row">
+        <view class="tab-navs">
+          <view class="{{textTabClass}}" data-tab="text" bindtap="onSwitchTab">文字</view>
+          <view class="{{imageTabClass}}" data-tab="image" bindtap="onSwitchTab">图片</view>
+          <view class="{{fontTabClass}}" data-tab="font" bindtap="onSwitchTab">字体</view>
+          <view class="{{bgTabClass}}" data-tab="bg" bindtap="onSwitchTab">背景</view>
+          <view class="{{tabIndicatorClass}}"></view>
+        </view>
+        <view class="panel-action" bindtap="onTapFullPreview">
+          <view class="panel-action-icon"></view>
+        </view>
+      </view>
 
-  <canvas id="detailCanvas" type="2d" class="render-canvas"></canvas>
-  <view wx:if="{{isRouting}}" class="route-mask">
-    <view class="route-loading"></view>
-    <view class="route-text">正在跳转...</view>
-  </view>
+      <scroll-view
+        class="tab-content"
+        scroll-y
+        show-scrollbar="{{false}}"
+        enhanced="{{true}}"
+        bounces="{{false}}"
+        enable-flex="{{true}}"
+        catchtouchmove="onPanelTouchMove"
+      >
+        <view wx:if="{{showTextTab}}" class="text-form">
+          <block wx:for="{{fieldsForRender}}" wx:key="key">
+            <view wx:if="{{item.isTimeField && hasAddressField}}" class="field-item combined-item">
+              <view class="combined-fields">
+                <view class="combined-cell">
+                  <view class="field-label-row">
+                    <view class="field-label">时间</view>
+                    <view wx:if="{{item.overflow}}" class="field-overflow-tip">已超出内容</view>
+                  </view>
+                  <picker class="combined-picker" mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeIndex}}" bindchange="onPickDateTime" bindcolumnchange="onDateTimeColumnChange">
+                    <view class="field-picker picker-with-arrow {{item.value ? '' : 'placeholder'}}">{{item.value || item.placeholder}}</view>
+                  </picker>
+                </view>
+
+                <view class="combined-cell">
+                  <view class="field-label-row">
+                    <view class="field-label">地点</view>
+                    <view wx:if="{{addressOverflow}}" class="field-overflow-tip">已超出内容</view>
+                  </view>
+                  <input
+                    class="field-input"
+                    data-key="address"
+                    maxlength="10"
+                    placeholder="请输入地点（不超过10字）"
+                    value="{{draft.text.address}}"
+                    bindinput="onTextInput"
+                  />
+                </view>
+              </view>
+            </view>
+
+            <view wx:if="{{!(item.isTimeField && hasAddressField) && (item.key !== 'address' || !hasAddressField)}}" class="field-item">
+              <view class="field-label-row">
+                <view class="field-label">{{item.label}}</view>
+                <view wx:if="{{item.overflow}}" class="field-overflow-tip">已超出内容</view>
+              </view>
+              <view class="field-control">
+                <picker wx:if="{{item.isTimeField}}" mode="multiSelector" range="{{dateTimeRange}}" value="{{dateTimeIndex}}" bindchange="onPickDateTime" bindcolumnchange="onDateTimeColumnChange">
+                  <view class="field-picker picker-with-arrow {{item.value ? '' : 'placeholder'}}">{{item.value || item.placeholder}}</view>
+                </picker>
+
+                <input
+                  wx:if="{{item.isAddressField}}"
+                  class="field-input"
+                  data-key="{{item.key}}"
+                  maxlength="{{item.maxLength}}"
+                  placeholder="{{item.placeholder}}"
+                  value="{{item.value}}"
+                  bindinput="onTextInput"
+                />
+
+                <textarea
+                  wx:if="{{item.isRemark}}"
+                  class="field-input textarea"
+                  auto-height
+                  maxlength="{{item.maxLength}}"
+                  data-key="{{item.key}}"
+                  placeholder="{{item.placeholder}}"
+                  value="{{item.value}}"
+                  bindinput="onTextInput"
+                ></textarea>
+
+                <input
+                  wx:if="{{!item.isTimeField && !item.isAddressField && !item.isRemark}}"
+                  class="field-input"
+                  data-key="{{item.key}}"
+                  maxlength="{{item.maxLength}}"
+                  placeholder="{{item.placeholder}}"
+                  value="{{item.value}}"
+                  bindinput="onTextInput"
+                />
+              </view>
+            </view>
+          </block>
+        </view>
+
+        <view wx:if="{{showImageTab}}" class="image-tab">
+          <view class="upload-entry" bindtap="onChooseFromAlbum">
+            <view class="upload-entry-title">点击上传图片</view>
+          </view>
+        </view>
+
+        <view wx:if="{{showFontTab}}" class="font-tab">
+          <view class="font-label">留言字体</view>
+          <view class="font-options">
+            <view
+              wx:for="{{fontOptionsForRender}}"
+              wx:key="key"
+              class="{{item.className}}"
+              data-font-key="{{item.key}}"
+              bindtap="onSelectRemarkFont"
+            >
+              {{item.label}}
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{showBgTab}}" class="bg-tab">
+          <view class="color-label">请选择</view>
+          <view class="color-grid">
+            <view
+              wx:for="{{colorsForRender}}"
+              wx:key="value"
+              class="{{item.className}}"
+              style="background: {{item.value}}"
+              data-color="{{item.value}}"
+              bindtap="onTapColor"
+            ></view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="panel-footer">
+        <button class="primary-btn footer-btn single" disabled="{{isSaving}}" bindtap="onTapSaveAlbum">
+          {{isSaving ? '保存中...' : '保存相册'}}
+        </button>
+      </view>
+    </view>
+
+    <view wx:if="{{isRouting}}" class="route-mask">
+      <view class="route-loading"></view>
+      <view class="route-text">正在跳转...</view>
+    </view>
+  </block>
+
+  <canvas id="previewBaseCanvas" type="2d" class="render-canvas" style="{{renderCanvasStyle}}"></canvas>
+  <canvas id="previewTextCanvas" type="2d" class="render-canvas" style="{{renderCanvasStyle}}"></canvas>
+  <canvas id="detailCanvas" type="2d" class="render-canvas" style="{{renderCanvasStyle}}"></canvas>
 </view>

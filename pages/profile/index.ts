@@ -1,23 +1,49 @@
 import { CacheService } from '../../services/cache.service';
 import { getSafeTopStyle } from '../../utils/safe-area';
+import {
+  applyNativeTheme,
+  getCurrentThemeMode,
+  getNextThemeMode,
+  getThemeClass,
+  setCurrentThemeMode,
+  ThemeMode,
+} from '../../utils/theme';
 
 interface ProfilePageData {
   version: string;
   safeTopStyle: string;
+  themeMode: ThemeMode;
+  themeClass: string;
 }
 
 Page<ProfilePageData, WechatMiniprogram.IAnyObject>({
   data: {
     version: '1.0.0',
     safeTopStyle: 'padding-top: 48px;',
+    themeMode: 'dark',
+    themeClass: 'theme-dark',
+  },
+
+  syncThemeMode() {
+    const themeMode = getCurrentThemeMode();
+    applyNativeTheme(themeMode);
+    this.setData({
+      themeMode,
+      themeClass: getThemeClass(themeMode),
+    });
   },
 
   onLoad() {
     const app = getApp<IAppOption>();
+    this.syncThemeMode();
     this.setData({
       version: app.globalData.version,
       safeTopStyle: getSafeTopStyle(12),
     });
+  },
+
+  onShow() {
+    this.syncThemeMode();
   },
 
   onTapClearCache() {
@@ -49,6 +75,28 @@ Page<ProfilePageData, WechatMiniprogram.IAnyObject>({
   onTapGuide() {
     wx.navigateTo({
       url: '/pages/user-guide/index',
+    });
+  },
+
+  onTapThemeMode(event: WechatMiniprogram.BaseEvent) {
+    const mode = event.currentTarget.dataset.mode as ThemeMode;
+    if (mode !== 'dark' && mode !== 'light') {
+      return;
+    }
+
+    const appliedMode = setCurrentThemeMode(mode);
+    this.setData({
+      themeMode: appliedMode,
+      themeClass: getThemeClass(appliedMode),
+    });
+  },
+
+  onTapToggleTheme() {
+    const nextMode = getNextThemeMode(this.data.themeMode);
+    const appliedMode = setCurrentThemeMode(nextMode);
+    this.setData({
+      themeMode: appliedMode,
+      themeClass: getThemeClass(appliedMode),
     });
   },
 });

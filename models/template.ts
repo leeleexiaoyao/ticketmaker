@@ -1,3 +1,6 @@
+import { CONCERT_TEMPLATE_FIXED_SVG } from '../assets/templates/concert-template-1/fixed-svg';
+import { CONCERT_TEMPLATE_TINT_SVG } from '../assets/templates/concert-template-1/tint-svg';
+
 export type TemplateCategory = 'concert' | 'train' | 'other';
 
 export type TemplateId =
@@ -20,41 +23,56 @@ export interface TemplateConfig {
   id: TemplateId;
   name: string;
   category: TemplateCategory;
+  preview: {
+    src: string;
+    width: number;
+    height: number;
+  };
   fields: TemplateFieldSchema[];
   defaultText: Record<string, string>;
   defaultBgColor: string;
   presetColors: string[];
+  canvasSize: {
+    width: number;
+    height: number;
+  };
   imageSlot: {
     x: number;
     y: number;
     width: number;
     height: number;
   };
-  fixedLayerColor: string;
-  fixedLayerSvg: string;
-  colorLayerSvg: string;
+  layers: {
+    tintSvg: string;
+    fixedSvg: string;
+    tintPlaceholderColor: string;
+  };
 }
 
 const COMMON_PRESET_COLORS = ['#FF5E5E', '#FF8F33', '#FFD43B', '#6EC1FF', '#66CDAA', '#A78BFA', '#95A5A6'];
-
-const FIXED_LAYER_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1600" preserveAspectRatio="none">
-  <rect x="0" y="0" width="1000" height="1600" fill="#D9D9D9" />
-  <rect x="70" y="70" width="860" height="760" fill="#EFEFEF" />
-  <rect x="70" y="990" width="860" height="4" fill="#BFBFBF" />
-</svg>`;
-
-const COLOR_LAYER_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1600" preserveAspectRatio="none">
-  <rect x="0" y="0" width="1000" height="1600" fill="{{COLOR}}" fill-opacity="0.16" />
-  <rect x="0" y="1080" width="1000" height="520" fill="{{COLOR}}" fill-opacity="0.12" />
-</svg>`;
+const TINT_PLACEHOLDER_COLOR = '#FF8989';
+const DEFAULT_CANVAS_SIZE = {
+  width: 440,
+  height: 904,
+};
+const HOME_TEMPLATE_PREVIEW = {
+  src: '/assets/templates/concert-template-1/preview-concert-1.png',
+  width: 880,
+  height: 1808,
+};
+const DEFAULT_IMAGE_SLOT = {
+  x: 20 / 440,
+  y: 20 / 904,
+  width: 400 / 440,
+  height: 565 / 904,
+};
 
 export const TEMPLATE_CONFIGS: TemplateConfig[] = [
   {
     id: 'concert-template-1',
     name: '演唱会模板一',
     category: 'concert',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'name', label: '名称', placeholder: '请选择演唱会名称', required: true },
       { key: 'time', label: '时间', placeholder: '请选择时间', required: true },
@@ -71,20 +89,19 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#FF5E5E',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.055,
-      width: 0.82,
-      height: 0.47,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
   {
     id: 'concert-template-2',
     name: '演唱会模板二',
     category: 'concert',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'name', label: '名称', placeholder: '请选择演唱会名称', required: true },
       { key: 'time', label: '时间', placeholder: '请选择时间', required: true },
@@ -101,20 +118,19 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#A78BFA',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.07,
-      width: 0.82,
-      height: 0.44,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
   {
     id: 'train-template-1',
     name: '车票模板一',
     category: 'train',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'from', label: '出发地', placeholder: '请填写出发地', required: true },
       { key: 'to', label: '目的地', placeholder: '请填写目的地', required: true },
@@ -133,20 +149,19 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#6EC1FF',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.055,
-      width: 0.82,
-      height: 0.47,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
   {
     id: 'train-template-2',
     name: '车票模板二',
     category: 'train',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'from', label: '出发地', placeholder: '请填写出发地', required: true },
       { key: 'to', label: '目的地', placeholder: '请填写目的地', required: true },
@@ -165,20 +180,19 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#FFD43B',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.065,
-      width: 0.82,
-      height: 0.45,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
   {
     id: 'other-template-1',
     name: '其他票根模板一',
     category: 'other',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'from', label: '出发地', placeholder: '请输入起点', required: true },
       { key: 'to', label: '目的地', placeholder: '请输入终点', required: true },
@@ -197,20 +211,19 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#66CDAA',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.055,
-      width: 0.82,
-      height: 0.47,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
   {
     id: 'other-template-2',
     name: '其他票根模板二',
     category: 'other',
+    preview: HOME_TEMPLATE_PREVIEW,
     fields: [
       { key: 'from', label: '出发地', placeholder: '请输入起点', required: true },
       { key: 'to', label: '目的地', placeholder: '请输入终点', required: true },
@@ -229,14 +242,12 @@ export const TEMPLATE_CONFIGS: TemplateConfig[] = [
     },
     defaultBgColor: '#FF8F33',
     presetColors: COMMON_PRESET_COLORS,
-    imageSlot: {
-      x: 0.09,
-      y: 0.065,
-      width: 0.82,
-      height: 0.45,
+    canvasSize: DEFAULT_CANVAS_SIZE,
+    imageSlot: DEFAULT_IMAGE_SLOT,
+    layers: {
+      tintSvg: CONCERT_TEMPLATE_TINT_SVG,
+      fixedSvg: CONCERT_TEMPLATE_FIXED_SVG,
+      tintPlaceholderColor: TINT_PLACEHOLDER_COLOR,
     },
-    fixedLayerColor: '#D9D9D9',
-    fixedLayerSvg: FIXED_LAYER_SVG,
-    colorLayerSvg: COLOR_LAYER_SVG,
   },
 ];

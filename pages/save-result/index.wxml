@@ -1,4 +1,4 @@
-<view class="container save-result-page" style="{{safeTopStyle}}">
+<view class="container save-result-page {{themeClass}}" style="{{safeTopStyle}}">
   <view class="result-icon-wrap">
     <view class="result-icon"></view>
     <view class="result-title">保存成功</view>

@@ -1,4 +1,5 @@
 import { TemplateId } from './template';
+import { RemarkFontPresetKey } from '../utils/font-presets';
 
 export interface CropParams {
   x: number;
@@ -21,6 +22,7 @@ export interface TemplateDraft {
   text: TextDraft;
   image: ImageDraft | null;
   bgColor: string;
+  remarkFontPresetKey: RemarkFontPresetKey;
 }
 
 export interface DraftStore {

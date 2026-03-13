@@ -1,4 +1,4 @@
-<view class="container profile-page" style="{{safeTopStyle}}">
+<view class="container profile-page {{themeClass}}" style="{{safeTopStyle}}">
   <view class="profile-header card">
     <view class="avatar">票</view>
     <view class="nickname">票根用户</view>
@@ -6,6 +6,18 @@
   </view>
 
   <view class="feature-list card">
+    <view class="feature-item feature-theme-item" hover-class="item-hover" bindtap="onTapToggleTheme">
+      <view class="item-icon icon-theme"></view>
+      <view class="item-copy">
+        <text class="item-text">显示模式</text>
+        <text class="item-desc">切换浅色与深色界面</text>
+      </view>
+      <view class="theme-switch">
+        <view class="theme-option {{themeMode === 'light' ? 'active' : ''}}" data-mode="light" catchtap="onTapThemeMode">浅色</view>
+        <view class="theme-option {{themeMode === 'dark' ? 'active' : ''}}" data-mode="dark" catchtap="onTapThemeMode">深色</view>
+      </view>
+    </view>
+
     <view class="feature-item" hover-class="item-hover" bindtap="onTapClearCache">
       <view class="item-icon icon-delete"></view>
       <view class="item-copy">

@@ -43,3 +43,27 @@
   margin-bottom: 10rpx;
   line-height: 1.62;
 }
+
+/* 主题维护说明：调整深色配色时，请同步更新下方浅色覆盖。 */
+.theme-light.guide-page {
+  background: #f4f7fc;
+}
+
+.theme-light .hero-title,
+.theme-light .guide-title {
+  color: #1b2538;
+}
+
+.theme-light .hero-subtitle {
+  color: #6a7a90;
+}
+
+.theme-light .guide-section {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid rgba(26, 43, 70, 0.1);
+  box-shadow: 0 16rpx 34rpx rgba(29, 49, 79, 0.12);
+}
+
+.theme-light .guide-text {
+  color: #5d6d84;
+}

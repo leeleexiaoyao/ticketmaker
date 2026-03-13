@@ -131,6 +131,22 @@
   font-weight: 700;
 }
 
+.icon-theme {
+  background: linear-gradient(145deg, #3a3f56 0%, #2b3042 100%);
+}
+
+.icon-theme::before {
+  content: '';
+  position: absolute;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  background: #f2f5ff;
+  left: 13rpx;
+  top: 13rpx;
+  box-shadow: inset -8rpx -8rpx 0 0 #8fa2d8;
+}
+
 .item-copy {
   display: flex;
   flex-direction: column;
@@ -159,10 +175,100 @@
   margin-left: 8rpx;
 }
 
+.feature-theme-item {
+  min-height: 130rpx;
+}
+
+.theme-switch {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 6rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.06);
+  margin-left: 12rpx;
+}
+
+.theme-option {
+  min-width: 84rpx;
+  height: 50rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #aeb7c6;
+}
+
+.theme-option.active {
+  color: #101114;
+  background: linear-gradient(135deg, #f5f5f7 0%, #cfd3da 100%);
+}
+
 .version-text {
   margin-top: auto;
   text-align: center;
   color: #9099a7;
   font-size: 24rpx;
   padding-bottom: 30rpx;
+}
+
+/* 主题维护说明：调整深色配色时，请同步更新下方浅色覆盖。 */
+.theme-light.profile-page {
+  background: #f3f6fc;
+}
+
+.theme-light .avatar {
+  background: linear-gradient(145deg, #2a3548 0%, #141b27 100%);
+  color: #f6f8fc;
+  box-shadow: 0 16rpx 28rpx rgba(16, 29, 49, 0.2);
+}
+
+.theme-light .nickname {
+  color: #1b2432;
+}
+
+.theme-light .header-subtitle {
+  color: #667389;
+}
+
+.theme-light .feature-item {
+  border-bottom: 1rpx solid rgba(27, 38, 57, 0.1);
+}
+
+.theme-light .item-hover {
+  background: rgba(45, 66, 102, 0.06);
+}
+
+.theme-light .item-text {
+  color: #1f2836;
+}
+
+.theme-light .item-desc {
+  color: #68778e;
+}
+
+.theme-light .item-arrow {
+  border-top-color: #62748f;
+  border-right-color: #62748f;
+}
+
+.theme-light .theme-switch {
+  background: rgba(43, 60, 88, 0.08);
+}
+
+.theme-light .theme-option {
+  color: #5f7089;
+}
+
+.theme-light .theme-option.active {
+  color: #f5f8ff;
+  background: linear-gradient(135deg, #37485f 0%, #1f2d42 100%);
+}
+
+.theme-light .version-text {
+  color: #6d7b90;
 }

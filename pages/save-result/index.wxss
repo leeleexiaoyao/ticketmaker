@@ -95,3 +95,25 @@
   width: 500rpx;
   margin-top: 44rpx;
 }
+
+/* 主题维护说明：调整深色配色时，请同步更新下方浅色覆盖。 */
+.theme-light.save-result-page {
+  background: #f4f7fc;
+}
+
+.theme-light .result-title {
+  color: #1c2638;
+}
+
+.theme-light .result-subtitle {
+  color: #66768f;
+}
+
+.theme-light .preview-wrap {
+  background: #f6f9ff;
+  border: 1rpx solid rgba(29, 50, 79, 0.14);
+}
+
+.theme-light .preview-placeholder {
+  color: #71819a;
+}

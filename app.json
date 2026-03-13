@@ -14,5 +14,10 @@
     "navigationBarTextStyle": "white",
     "backgroundColor": "#111317"
   },
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "用于将生成的海报保存到系统相册"
+    }
+  },
   "sitemapLocation": "sitemap.json"
 }
